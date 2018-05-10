@@ -18,7 +18,9 @@
 #define D_RST_PIN p9
 #define D_CS_PIN p10
 
-#define DIGITAL_OUT p25
+//#define DIGITAL_OUT p25
+#define PWM_OUT p26
+
 
 
 //an SPI sub-class that sets up format and clock speed
@@ -46,7 +48,8 @@ void wavegenerator();
 //Output for the alive LED
 DigitalOut alive(LED1);
 
-DigitalOut dig_out(DIGITAL_OUT);
+//DigitalOut dig_out(DIGITAL_OUT);
+PwmOut led(PWM_OUT);
 
 //External interrupt input from the switch oscillator
 InterruptIn swinC3(SW_PIN1);
@@ -60,8 +63,6 @@ Ticker swtimerC2;
 Ticker swtimerC4;
 Ticker swtimerC5;
 Ticker wavetimer;
-
-PwmOut PwmPin(p26);
 
 //Registers for the switch counter, switch counter latch register and update flag
 volatile uint16_t scounterC2=0;
@@ -110,19 +111,19 @@ int main() {
     //Write some sample text
     //gOled1.printf("%ux%u C3 is: \r\n", 64, 128);
     
-    int valC3 = 0; //MSB
+//    int valC3 = 0; //MSB
     bool C3on_pre = false;
     bool C3on_after = false;
-    int valC2 = 0;
+//    int valC2 = 0;
     bool C2on_pre = false;
     bool C2on_after = false;
-    int valC4 = 0;
+//    int valC4 = 0;
     bool C4on_pre = false;
     bool C4on_after = false;
-    int valC5 = 0; //LSB
+//    int valC5 = 0; //LSB
     bool C5on_pre = false;
     bool C5on_after = false;
-    dig_out = 0;
+//    dig_out = 0;
     double final_freq = 0;
     double time_period = 0.05;
     
@@ -132,6 +133,10 @@ int main() {
     int incre_flag_C5 = 0;
     int decre_flag_C4 = 0;
     int reset_flag_C3 = 0;
+    
+    int previous_fre = 0;
+    
+    led.write(0.50f);  // 50% duty cycle
     
     
     //Main loop
@@ -152,18 +157,18 @@ int main() {
             
             if(freqC3 > 60400)
             {
-                gOled1.printf("\nC3 (1000Hz) is OFF ", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC3(Reset) is OFF ", gOled1.width(), gOled1.height());
                 C3on_pre = true;
              
             }
             else if(freqC3 < 60000)
             {
-                gOled1.printf("\nC3 (1000Hz) is ON  ", gOled1.width(), gOled1.height());    
+                gOled1.printf("\nC3(Reset) is ON  ", gOled1.width(), gOled1.height());    
                 C3on_after = true;             
             }
             else
             {
-                gOled1.printf("\nC3 (1000Hz) unknown", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC3(Reset) unknown", gOled1.width(), gOled1.height());
             }
             
             
@@ -179,17 +184,17 @@ int main() {
             
                 if(freqC2 > 52750)
               {
-                 gOled1.printf("\nC2 (100Hz) is OFF ", gOled1.width(), gOled1.height());
+                 gOled1.printf("\nC2(+-size) is OFF ", gOled1.width(), gOled1.height());
                  C2on_pre = true;
               }
                else if(freqC2 < 52600)
               {
-                gOled1.printf("\nC2 (100Hz) is ON   ", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC2 (+-size) is ON   ", gOled1.width(), gOled1.height());
                 C2on_after = true; 
               }
                else
            {
-                gOled1.printf("\nC2 (100Hz) unknown", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC2 (+-size) unknown", gOled1.width(), gOled1.height());
             }
 
                       
@@ -205,17 +210,17 @@ int main() {
             
                 if(freqC4 > 49000)
               {
-                 gOled1.printf("\nC4 (10Hz) is OFF   ", gOled1.width(), gOled1.height());
+                 gOled1.printf("\nC4 (-) is OFF   ", gOled1.width(), gOled1.height());
                   C4on_pre = true;
               }
                else if(freqC4 < 48750)
               {
-                gOled1.printf("\nC4 (10Hz) is ON     ", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC4 (-) is ON     ", gOled1.width(), gOled1.height());
                 C4on_after = true; 
               }
                else
            {
-                gOled1.printf("\nC4 (10Hz) is unknown", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC4 (-) is unknown", gOled1.width(), gOled1.height());
             }
         
                       
@@ -231,17 +236,17 @@ int main() {
             
                 if(freqC5 > 56550)
               {
-                 gOled1.printf("\nC5 (1Hz) is OFF   ", gOled1.width(), gOled1.height());
+                 gOled1.printf("\nC5 (+) is OFF   ", gOled1.width(), gOled1.height());
                  C5on_pre = true;
               }
                else if(freqC5 < 56320)
               {
-                gOled1.printf("\nC5 (1Hz) is ON     ", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC5 (+) is ON     ", gOled1.width(), gOled1.height());
                 C5on_after = true; 
               }
                else
            {
-                gOled1.printf("\nC5 (1Hz) is unknown", gOled1.width(), gOled1.height());
+                gOled1.printf("\nC5 (+) is unknown", gOled1.width(), gOled1.height());
             }
                       
             //Toggle the alive LED
@@ -343,22 +348,26 @@ int main() {
         gOled1.printf("\nnow f = %01u  ",current_fre);
         gOled1.printf("\nf increment = %01u  ",fre_increment);
         
+        previous_fre = final_freq;
 //        final_freq = (val_C3out * 1000) + (val_C2out * 100) + (val_C4out * 10) + (val_C5out);
         if(current_fre<20){
             final_freq = 20;
         }
-        else if(current_fre>53000){
+        else if(current_fre>63000){
             final_freq = 50000;
         }
         else{
             final_freq = current_fre;
         }
         
-        if(final_freq != 0)
+        
+        if(final_freq != previous_fre)
         {
-            time_period = 1/(2*final_freq);
-            wavetimer.detach();
-            wavetimer.attach(&wavegenerator, time_period);
+            time_period = 1.000/(final_freq);
+            //wavetimer.detach();
+//            wavetimer.attach(&wavegenerator, time_period);
+        led.period(time_period);
+        led.write(0.50f);
         }
         
         gOled1.display();
@@ -432,9 +441,11 @@ void toutC5() {
     updateC5 = 1;
 }
 
-void wavegenerator() {
-      
-    dig_out = !dig_out;
-}
+//void wavegenerator() {
+//      
+////    dig_out = !dig_out;
+//    led.period();     
+//    led.write(0.50f);
+//}
 
 
