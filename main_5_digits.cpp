@@ -339,14 +339,11 @@ int main() {
 //        int val_C4out = valC4/2;
 //        int val_C5out = valC5/2;
         
-        gOled1.setTextCursor(0,32);
         
         //gOled1.printf("\nOutput = %01u ",val_C3out);
 //        gOled1.printf("%01u ",val_C2out);
 //        gOled1.printf("%01u ",val_C4out);
 //        gOled1.printf("%01u ",val_C5out);
-        gOled1.printf("\nnow f = %01u  ",current_fre);
-        gOled1.printf("\nf increment = %01u  ",fre_increment);
         
         previous_fre = final_freq;
 //        final_freq = (val_C3out * 1000) + (val_C2out * 100) + (val_C4out * 10) + (val_C5out);
@@ -360,6 +357,9 @@ int main() {
             final_freq = current_fre;
         }
         
+        gOled1.setTextCursor(0,32);
+        gOled1.printf("\nnow f = %01u  ",final_freq);
+        gOled1.printf("\nf increment = %01u  ",fre_increment);
         
         if(final_freq != previous_fre)
         {
